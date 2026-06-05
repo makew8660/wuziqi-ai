@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="960" viewBox="0 0 1200 960" role="img" aria-label="五子棋 AI">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f7ecd2" />
+      <stop offset="100%" stop-color="#d6b98a" />
+    </linearGradient>
+    <linearGradient id="board" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e7c789" />
+      <stop offset="100%" stop-color="#c9974f" />
+    </linearGradient>
+    <radialGradient id="blackStone" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#66615f" />
+      <stop offset="45%" stop-color="#27201e" />
+      <stop offset="100%" stop-color="#0f0d0d" />
+    </radialGradient>
+    <radialGradient id="whiteStone" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="55%" stop-color="#efe4d7" />
+      <stop offset="100%" stop-color="#d7c5b0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="960" rx="48" fill="url(#bg)" />
+  <circle cx="1020" cy="140" r="150" fill="#ffffff" opacity="0.18" />
+  <circle cx="130" cy="110" r="160" fill="#ffffff" opacity="0.16" />
+
+  <text x="92" y="162" font-size="86" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" font-weight="700" fill="#2e2117">五子棋 AI</text>
+  <text x="96" y="228" font-size="34" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" fill="#6a5544">微信里点开就能玩的手机 H5 人机对战版</text>
+
+  <g transform="translate(92 302)">
+    <rect width="1016" height="560" rx="34" fill="#fffaf2" opacity="0.72" />
+    <rect x="44" y="42" width="928" height="470" rx="26" fill="url(#board)" />
+
+    <g transform="translate(106 88)" stroke="#5a3819" stroke-width="3.2" opacity="0.78">
+      <line x1="0" y1="0" x2="0" y2="378" />
+      <line x1="54" y1="0" x2="54" y2="378" />
+      <line x1="108" y1="0" x2="108" y2="378" />
+      <line x1="162" y1="0" x2="162" y2="378" />
+      <line x1="216" y1="0" x2="216" y2="378" />
+      <line x1="270" y1="0" x2="270" y2="378" />
+      <line x1="324" y1="0" x2="324" y2="378" />
+      <line x1="378" y1="0" x2="378" y2="378" />
+      <line x1="432" y1="0" x2="432" y2="378" />
+      <line x1="486" y1="0" x2="486" y2="378" />
+      <line x1="540" y1="0" x2="540" y2="378" />
+      <line x1="594" y1="0" x2="594" y2="378" />
+      <line x1="648" y1="0" x2="648" y2="378" />
+      <line x1="702" y1="0" x2="702" y2="378" />
+      <line x1="756" y1="0" x2="756" y2="378" />
+      <line x1="0" y1="0" x2="756" y2="0" />
+      <line x1="0" y1="27" x2="756" y2="27" />
+      <line x1="0" y1="54" x2="756" y2="54" />
+      <line x1="0" y1="81" x2="756" y2="81" />
+      <line x1="0" y1="108" x2="756" y2="108" />
+      <line x1="0" y1="135" x2="756" y2="135" />
+      <line x1="0" y1="162" x2="756" y2="162" />
+      <line x1="0" y1="189" x2="756" y2="189" />
+      <line x1="0" y1="216" x2="756" y2="216" />
+      <line x1="0" y1="243" x2="756" y2="243" />
+      <line x1="0" y1="270" x2="756" y2="270" />
+      <line x1="0" y1="297" x2="756" y2="297" />
+      <line x1="0" y1="324" x2="756" y2="324" />
+      <line x1="0" y1="351" x2="756" y2="351" />
+      <line x1="0" y1="378" x2="756" y2="378" />
+    </g>
+
+    <g fill="#3f2611" opacity="0.92">
+      <circle cx="322" cy="277" r="7" />
+      <circle cx="538" cy="277" r="7" />
+      <circle cx="754" cy="277" r="7" />
+      <circle cx="322" cy="439" r="7" />
+      <circle cx="538" cy="439" r="7" />
+      <circle cx="754" cy="439" r="7" />
+      <circle cx="322" cy="601" r="7" />
+      <circle cx="538" cy="601" r="7" />
+      <circle cx="754" cy="601" r="7" />
+    </g>
+
+    <g>
+      <circle cx="484" cy="412" r="24" fill="url(#blackStone)" />
+      <circle cx="538" cy="412" r="24" fill="url(#whiteStone)" stroke="#8a6b46" stroke-opacity="0.28" />
+      <circle cx="592" cy="412" r="24" fill="url(#blackStone)" />
+      <circle cx="646" cy="412" r="24" fill="url(#whiteStone)" stroke="#8a6b46" stroke-opacity="0.28" />
+      <circle cx="700" cy="412" r="24" fill="url(#blackStone)" />
+      <circle cx="700" cy="412" r="13" fill="none" stroke="#ffd47a" stroke-width="4" />
+    </g>
+
+    <g transform="translate(88 524)">
+      <rect width="184" height="88" rx="22" fill="#915226" />
+      <text x="92" y="54" text-anchor="middle" font-size="30" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" font-weight="700" fill="#fff8ef">人先</text>
+      <rect x="206" width="184" height="88" rx="22" fill="#915226" />
+      <text x="298" y="54" text-anchor="middle" font-size="30" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" font-weight="700" fill="#fff8ef">AI先</text>
+      <rect x="412" width="184" height="88" rx="22" fill="#fff6e8" stroke="#c8b28f" />
+      <text x="504" y="54" text-anchor="middle" font-size="30" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" font-weight="700" fill="#2e2117">悔棋</text>
+      <rect x="618" width="184" height="88" rx="22" fill="#fff6e8" stroke="#c8b28f" />
+      <text x="710" y="54" text-anchor="middle" font-size="30" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" font-weight="700" fill="#2e2117">重开</text>
+    </g>
+  </g>
+</svg>

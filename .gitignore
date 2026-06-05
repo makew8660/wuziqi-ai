@@ -1,0 +1,8 @@
+*
+!.gitignore
+!.nojekyll
+!README.md
+!index.html
+!manifest.webmanifest
+!share-cover.svg
+!WECHAT-IOS-DEPLOY.md
