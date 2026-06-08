@@ -35,6 +35,7 @@
     profileName: $("profileName"),
     profileMeta: $("profileMeta"),
     logoutBtn: $("logoutBtn"),
+    homeActions: Array.from(document.querySelectorAll(".home-card")),
     tabs: Array.from(document.querySelectorAll(".tab")),
     tabPanels: Array.from(document.querySelectorAll(".tab-panel")),
     boardCanvas: $("boardCanvas"),
@@ -47,6 +48,8 @@
     queueBtn: $("queueBtn"),
     pvpStatus: $("pvpStatus"),
     pvpCanvas: $("pvpCanvas"),
+    pvpBoardPanel: $("pvpBoardPanel"),
+    pvpLobbyBlank: $("pvpLobbyBlank"),
     activeMatchCard: $("activeMatchCard"),
     matchTitle: $("matchTitle"),
     matchMeta: $("matchMeta"),
@@ -66,6 +69,14 @@
     myAiPoints: $("myAiPoints"),
     myPvpGames: $("myPvpGames"),
     myAiGames: $("myAiGames"),
+    gameModal: $("gameModal"),
+    modalKicker: $("modalKicker"),
+    modalTitle: $("modalTitle"),
+    modalMessage: $("modalMessage"),
+    modalScore: $("modalScore"),
+    modalNote: $("modalNote"),
+    modalPrimaryBtn: $("modalPrimaryBtn"),
+    modalSecondaryBtn: $("modalSecondaryBtn"),
     toast: $("toast")
   };
 
@@ -73,9 +84,11 @@
     client: null,
     profile: null,
     session: null,
+    score: null,
     rankMode: "pvp",
     matchChannel: null,
     matchChannelId: null,
+    inboxChannel: null,
     queueTimer: 0
   };
 
@@ -98,11 +111,16 @@
     board: new Uint8Array(BOARD_SIZE * BOARD_SIZE),
     moves: [],
     match: null,
-    myColor: null
+    myColor: null,
+    resultShownFor: null,
+    invitePromptFor: null,
+    dismissedMatches: new Set()
   };
 
   let aiWorker = null;
   let toastTimer = 0;
+  let modalPrimaryAction = null;
+  let modalSecondaryAction = null;
 
   function idx(x, y) {
     return y * BOARD_SIZE + x;
@@ -135,6 +153,139 @@
     toastTimer = window.setTimeout(() => {
       els.toast.hidden = true;
     }, 2600);
+  }
+
+  const encouragements = [
+    "好棋不怕再来一盘。",
+    "棋盘还热着，下一局可能更精彩。",
+    "高手之间，输赢只是下一手的伏笔。",
+    "这局有火花，再来一盘很合适。",
+    "棋逢对手，下一局见真章。"
+  ];
+
+  function randomEncouragement() {
+    return encouragements[Math.floor(Math.random() * encouragements.length)];
+  }
+
+  function openModal(options) {
+    modalPrimaryAction = options.onPrimary || null;
+    modalSecondaryAction = options.onSecondary || null;
+    els.modalKicker.textContent = options.kicker || "Match Result";
+    els.modalTitle.textContent = options.title || "对局结束";
+    els.modalMessage.textContent = options.message || "";
+    els.modalScore.textContent = options.score || "";
+    els.modalScore.hidden = !options.score;
+    els.modalNote.textContent = options.note || randomEncouragement();
+    els.modalPrimaryBtn.textContent = options.primaryText || "确定";
+    els.modalSecondaryBtn.textContent = options.secondaryText || "再战";
+    els.modalSecondaryBtn.className = options.secondaryDanger ? "danger" : "primary";
+    els.modalSecondaryBtn.hidden = !options.secondaryText;
+    els.gameModal.hidden = false;
+  }
+
+  function closeModal() {
+    els.gameModal.hidden = true;
+    modalPrimaryAction = null;
+    modalSecondaryAction = null;
+  }
+
+  function clearPvpMatch() {
+    pvpGame.match = null;
+    pvpGame.moves = [];
+    pvpGame.board = new Uint8Array(BOARD_SIZE * BOARD_SIZE);
+    pvpGame.myColor = null;
+    els.pvpBoardPanel.hidden = true;
+    els.pvpLobbyBlank.hidden = false;
+    renderPvpBoard();
+    updatePvpHeader();
+  }
+
+  function pvpResultText(match) {
+    if (!match) return "对局结束";
+    if (match.finished_reason === "declined") return "再战已取消";
+    if (!match.winner) return "平局";
+    return match.winner === cloud.profile?.id ? "你赢了" : "你输了";
+  }
+
+  function calcPvpPoints(match) {
+    if (!match || match.move_count < 10 || match.finished_reason === "declined") return 0;
+    const startedAt = new Date(match.started_at || match.created_at || Date.now()).getTime();
+    const endedAt = new Date(match.ended_at || Date.now()).getTime();
+    const duration = Math.max(1, Math.floor((endedAt - startedAt) / 1000));
+    if (!match.winner) return Math.min(20, 10 + Math.floor(duration / 120));
+    if (match.winner === cloud.profile?.id) return Math.min(50, 20 + Math.floor(duration / 30));
+    return Math.min(9, Math.max(1, Math.floor(duration / 120)));
+  }
+
+  function showPvpResultModal(match) {
+    if (!match || match.finished_reason === "declined" || pvpGame.dismissedMatches.has(match.id)) return;
+    if (pvpGame.resultShownFor === match.id) return;
+    pvpGame.resultShownFor = match.id;
+    const points = calcPvpPoints(match);
+    const result = pvpResultText(match);
+    openModal({
+      kicker: "Match Finished",
+      title: result,
+      message: points > 0 ? "本局积分已经结算，排行榜会立即刷新。" : "本局手数不足或无有效积分。",
+      score: `真人积分 +${points}`,
+      note: randomEncouragement(),
+      primaryText: "确定",
+      secondaryText: match.match_type === "random" || match.match_type === "friend" || match.match_type === "rematch" ? "邀请再战" : "",
+      onPrimary: async () => {
+        pvpGame.dismissedMatches.add(match.id);
+        closeModal();
+        clearPvpMatch();
+        await Promise.allSettled([loadMatches(), loadMyScore(), loadRank()]);
+      },
+      onSecondary: async () => {
+        await requestRematch(match.id);
+      }
+    });
+  }
+
+  function showAiResultModal(pointsAdded) {
+    const result = aiGame.winner === aiGame.humanPlayer
+      ? "你赢了"
+      : aiGame.winner === aiGame.aiPlayer
+        ? "AI 赢了"
+        : "平局";
+    openModal({
+      kicker: "AI Result",
+      title: result,
+      message: cloud.profile ? "AI 对局已经结算。" : "登录后完成有效 AI 胜局才会计分。",
+      score: `AI积分 +${pointsAdded || 0}`,
+      note: randomEncouragement(),
+      primaryText: "确定",
+      secondaryText: "再来一局",
+      onPrimary: () => closeModal(),
+      onSecondary: () => {
+        closeModal();
+        resetAiGame(aiGame.aiStarts);
+      }
+    });
+  }
+
+  function showRematchInviteModal(row) {
+    if (!row || pvpGame.invitePromptFor === row.match_id) return;
+    pvpGame.invitePromptFor = row.match_id;
+    openModal({
+      kicker: "Rematch Invite",
+      title: "对方邀请你再战",
+      message: `${row.opponent_username || "对手"} 想和你再来一局。`,
+      score: "",
+      note: randomEncouragement(),
+      primaryText: "接受再战",
+      secondaryText: "拒绝",
+      secondaryDanger: true,
+      onPrimary: async () => {
+        closeModal();
+        await acceptMatch(row.match_id);
+      },
+      onSecondary: async () => {
+        closeModal();
+        await declineMatch(row.match_id);
+      }
+    });
   }
 
   function setBusy(button, busy, text) {
@@ -210,6 +361,7 @@
     if (error) throw error;
     cloud.profile = Array.isArray(data) ? data[0] : data;
     updateProfileUi();
+    subscribeInbox();
     await loadAllCloudData();
   }
 
@@ -231,6 +383,7 @@
     if (profile) {
       cloud.profile = profile;
       updateProfileUi();
+      subscribeInbox();
       await loadAllCloudData();
       return;
     }
@@ -284,12 +437,14 @@
     await cloud.client.auth.signOut();
     cloud.profile = null;
     cloud.session = null;
+    cloud.score = null;
     stopQueuePolling();
+    unsubscribeInbox();
     pvpGame.match = null;
     pvpGame.moves = [];
     pvpGame.board = new Uint8Array(BOARD_SIZE * BOARD_SIZE);
     updateProfileUi();
-    renderPvpBoard();
+    clearPvpMatch();
     showToast("已退出");
   }
 
@@ -298,11 +453,11 @@
   }
 
   async function loadMyScore() {
-    if (!cloud.profile) return;
+    if (!cloud.profile) return null;
     const { data, error } = await cloud.client.rpc("get_my_score");
     if (error) {
       console.warn(error);
-      return;
+      return null;
     }
     const score = data || {};
     const pvpPoints = score.pvp_points || 0;
@@ -314,6 +469,8 @@
     els.myPvpGames.textContent = `${pvpGames}`;
     els.myAiGames.textContent = `${aiGames}`;
     els.profileMeta.textContent = `真人 ${pvpPoints} / AI ${aiPoints}`;
+    cloud.score = score;
+    return score;
   }
 
   async function loadRank() {
@@ -485,11 +642,19 @@
     rows.forEach((row) => {
       const item = document.createElement("div");
       item.className = "list-item";
-      const action = row.status === "invited" && row.invited_user === cloud.profile.id
-        ? `<button class="primary small" data-accept-match="${row.match_id}" type="button">接受</button>`
-        : row.status === "active"
-          ? `<button class="primary small" data-open-match="${row.match_id}" type="button">进入</button>`
-          : `<button class="secondary small" data-open-match="${row.match_id}" type="button">查看</button>`;
+      let action = "";
+      if (row.status === "invited" && row.invited_user === cloud.profile.id) {
+        action = `
+          <button class="primary small" data-accept-match="${row.match_id}" type="button">接受</button>
+          <button class="secondary small" data-decline-match="${row.match_id}" type="button">拒绝</button>
+        `;
+      } else if (row.status === "active") {
+        action = `<button class="primary small" data-open-match="${row.match_id}" type="button">进入</button>`;
+      } else if (row.status === "invited") {
+        action = `<button class="secondary small" data-open-match="${row.match_id}" type="button">等待中</button>`;
+      } else {
+        action = `<button class="secondary small" data-open-match="${row.match_id}" type="button">查看</button>`;
+      }
       item.innerHTML = `
         <div>
           <strong>${escapeHtml(row.opponent_username || "等待对手")}</strong>
@@ -500,10 +665,19 @@
       els.matchList.appendChild(item);
     });
 
+    const incomingRematch = rows.find((row) =>
+      row.status === "invited" &&
+      row.match_type === "rematch" &&
+      row.invited_user === cloud.profile.id
+    );
+    if (incomingRematch) showRematchInviteModal(incomingRematch);
+
     const active = rows.find((row) => row.status === "active");
     if (active && (!pvpGame.match || pvpGame.match.id !== active.match_id)) {
       stopQueuePolling();
       await loadMatch(active.match_id);
+    } else if (!active && pvpGame.match?.status === "active") {
+      clearPvpMatch();
     }
   }
 
@@ -528,8 +702,59 @@
       showToast(error.message || "接受失败");
       return;
     }
+    pvpGame.invitePromptFor = null;
+    setTab("pvp");
     await loadMatches();
     await loadMatch(matchId);
+  }
+
+  async function requestRematch(matchId) {
+    if (!requireLogin() || !matchId) return;
+    const { data, error } = await cloud.client.rpc("request_rematch", { p_match_id: matchId });
+    if (error) {
+      showToast(error.message?.includes("function")
+        ? "请先在 Supabase 运行再战更新 SQL"
+        : error.message || "再战邀请失败");
+      return;
+    }
+    const newMatchId = Array.isArray(data) ? data[0] : data;
+    closeModal();
+    openModal({
+      kicker: "Rematch Sent",
+      title: "再战邀请已发出",
+      message: "已通知对方，等待对方接受或拒绝。",
+      score: "",
+      note: randomEncouragement(),
+      primaryText: "确定",
+      secondaryText: "",
+      onPrimary: async () => {
+        closeModal();
+        clearPvpMatch();
+        await loadMatches();
+      }
+    });
+    await loadMatches();
+    if (newMatchId) {
+      await loadMatch(newMatchId);
+      els.pvpBoardPanel.hidden = true;
+      els.pvpLobbyBlank.hidden = false;
+    }
+  }
+
+  async function declineMatch(matchId) {
+    if (!requireLogin() || !matchId) return;
+    const { error } = await cloud.client.rpc("decline_match", { p_match_id: matchId });
+    if (error) {
+      showToast(error.message?.includes("function")
+        ? "请先在 Supabase 运行再战更新 SQL"
+        : error.message || "拒绝失败");
+      return;
+    }
+    pvpGame.invitePromptFor = null;
+    pvpGame.dismissedMatches.add(matchId);
+    closeModal();
+    clearPvpMatch();
+    await Promise.allSettled([loadMatches(), loadMyScore(), loadRank()]);
   }
 
   async function loadMatch(matchId) {
@@ -554,11 +779,23 @@
       : match.player_white === cloud.profile.id
         ? WHITE
         : null;
+    const playable = match.status === "active" || (match.status === "finished" && match.finished_reason !== "declined");
+    els.pvpBoardPanel.hidden = !playable;
+    els.pvpLobbyBlank.hidden = playable;
     renderPvpBoard();
     updatePvpHeader();
     subscribeMatch(match.id);
+    if (match.status === "finished" && match.finished_reason === "declined") {
+      pvpGame.dismissedMatches.add(match.id);
+      closeModal();
+      clearPvpMatch();
+      showToast("对方已拒绝再战");
+      await Promise.allSettled([loadMatches(), loadMyScore(), loadRank()]);
+      return;
+    }
     if (match.status === "finished") {
       await Promise.allSettled([loadMyScore(), loadRank()]);
+      showPvpResultModal(match);
     }
   }
 
@@ -576,6 +813,22 @@
       .on("postgres_changes", { event: "*", schema: "public", table: "match_moves", filter: `match_id=eq.${matchId}` }, () => loadMatch(matchId))
       .subscribe();
     cloud.matchChannelId = matchId;
+  }
+
+  function subscribeInbox() {
+    if (!cloud.client || cloud.inboxChannel) return;
+    cloud.inboxChannel = cloud.client
+      .channel(`match-inbox-${cloud.profile?.id || "guest"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => {
+        if (cloud.profile) loadMatches();
+      })
+      .subscribe();
+  }
+
+  function unsubscribeInbox() {
+    if (!cloud.client || !cloud.inboxChannel) return;
+    cloud.client.removeChannel(cloud.inboxChannel);
+    cloud.inboxChannel = null;
   }
 
   async function makePvpMove(x, y) {
@@ -607,7 +860,7 @@
   }
 
   function matchStatusText(row) {
-    if (row.status === "invited") return "好友邀请待接受";
+    if (row.status === "invited") return row.match_type === "rematch" ? "再战邀请待确认" : "好友邀请待接受";
     if (row.status === "active") return row.is_my_turn ? "轮到你" : "等待对方";
     if (row.status === "finished") return row.result_text || "已结束";
     return row.status;
@@ -617,19 +870,29 @@
     const match = pvpGame.match;
     if (!match) {
       els.activeMatchCard.hidden = true;
+      els.resignBtn.hidden = true;
       els.pvpStatus.textContent = "登录后可以随机匹配或接受好友邀请。";
       return;
     }
     els.activeMatchCard.hidden = false;
+    els.resignBtn.hidden = match.status !== "active";
     const myTurn = match.current_turn === cloud.profile?.id;
     const colorText = pvpGame.myColor === BLACK ? "黑棋" : "白棋";
-    els.matchTitle.textContent = match.status === "finished" ? "对局已结束" : `当前对局 · ${colorText}`;
+    els.matchTitle.textContent = match.status === "finished"
+      ? "对局已结束"
+      : match.status === "invited"
+        ? "等待再战确认"
+        : `当前对局 · ${colorText}`;
     els.matchMeta.textContent = match.status === "finished"
       ? match.winner === cloud.profile?.id
         ? "你赢了"
         : match.winner
           ? "你输了"
           : "平局"
+      : match.status === "invited"
+        ? match.invited_user === cloud.profile?.id
+          ? "对方邀请你再战"
+          : "已邀请对方再战，等待回应"
       : myTurn
         ? "轮到你落子"
         : "等待对方落子";
@@ -720,12 +983,15 @@
   async function submitAiResult() {
     if (aiGame.submitted || !cloud.profile || !cloud.client) {
       els.aiCloudState.textContent = cloud.profile ? "AI积分未提交" : "登录后可计分";
+      showAiResultModal(0);
       return;
     }
     const humanMoves = aiGame.moves.filter((move) => move.player === aiGame.humanPlayer).length;
     const result = aiGame.winner === aiGame.humanPlayer ? "win" : aiGame.winner === aiGame.aiPlayer ? "loss" : "draw";
     if (humanMoves < 8 || result !== "win") {
       els.aiCloudState.textContent = humanMoves < 8 ? "AI有效局需8手" : "AI胜利才加分";
+      aiGame.submitted = true;
+      showAiResultModal(0);
       return;
     }
     aiGame.submitted = true;
@@ -738,11 +1004,13 @@
     if (error) {
       els.aiCloudState.textContent = "AI积分提交失败";
       console.warn(error);
+      showAiResultModal(0);
       return;
     }
     els.aiCloudState.textContent = `AI +${data?.points_added || 0}`;
     await loadMyScore();
     await loadRank();
+    showAiResultModal(data?.points_added || 0);
   }
 
   function updateAiStatus(text) {
@@ -1333,11 +1601,23 @@
     els.wechatBtn.addEventListener("click", () => showToast("微信登录入口已预留，拿到微信资质后可接入"));
     els.refreshBtn.addEventListener("click", () => loadAllCloudData());
     els.tabs.forEach((tab) => tab.addEventListener("click", () => setTab(tab.dataset.tab)));
+    els.homeActions.forEach((button) => button.addEventListener("click", () => {
+      setTab(button.dataset.homeTarget);
+      if (button.dataset.homeQueue) joinQueue();
+    }));
     els.rankSwitches.forEach((button) => button.addEventListener("click", () => {
       cloud.rankMode = button.dataset.rank;
       els.rankSwitches.forEach((item) => item.classList.toggle("active", item === button));
       loadRank();
     }));
+    els.modalPrimaryBtn.addEventListener("click", async () => {
+      if (modalPrimaryAction) await modalPrimaryAction();
+      else closeModal();
+    });
+    els.modalSecondaryBtn.addEventListener("click", async () => {
+      if (modalSecondaryAction) await modalSecondaryAction();
+      else closeModal();
+    });
 
     els.playerFirstBtn.addEventListener("click", () => resetAiGame(false));
     els.aiFirstBtn.addEventListener("click", () => resetAiGame(true));
@@ -1356,6 +1636,7 @@
       const target = event.target.closest("button");
       if (!target) return;
       if (target.dataset.acceptMatch) acceptMatch(target.dataset.acceptMatch);
+      if (target.dataset.declineMatch) declineMatch(target.dataset.declineMatch);
       if (target.dataset.openMatch) loadMatch(target.dataset.openMatch);
     });
 
@@ -1385,7 +1666,7 @@
     }
     updateCloudUi();
     resetAiGame(false);
-    renderPvpBoard();
+    clearPvpMatch();
     await loadSession();
     els.aiCloudState.textContent = cloud.profile ? AI_SCORE_RULE : "登录后可计分";
     els.pvpStatus.textContent = PVP_SCORE_RULE;
