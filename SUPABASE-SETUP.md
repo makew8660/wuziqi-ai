@@ -17,6 +17,8 @@
 3. 把 `supabase/schema.sql` 全部复制进去
 4. 点击 `Run`
 
+如果你已经运行过旧版脚本，这次只需要再运行 `supabase/rematch-update.sql`，用于开启再战邀请和拒绝再战。
+
 执行成功后，会自动创建：
 
 - 用户资料
