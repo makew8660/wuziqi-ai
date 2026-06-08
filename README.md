@@ -8,6 +8,7 @@
 - AI 对战，登录后 AI 胜局可获得 AI 积分
 - 好友搜索、好友申请、好友约战
 - 真人随机匹配
+- 对局结束结算弹窗、再战邀请、接受/拒绝再战
 - 真人落子由 Supabase 数据库函数校验
 - 真人排行和 AI 排行分开
 - 当前赛季 60 天，赛季总分不封顶
@@ -29,6 +30,8 @@
 3. 在 Supabase Authentication 设置里关闭邮箱确认。
 4. 把 `app.js` 顶部的 `SUPABASE_URL` 和 `SUPABASE_ANON_KEY` 换成你的项目配置。
 5. 推送到 GitHub。
+
+如果已经部署过旧版，只需要额外执行 `supabase/rematch-update.sql`。
 
 线上地址：
 
