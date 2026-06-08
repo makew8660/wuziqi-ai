@@ -1,11 +1,11 @@
 {
-  "name": "五子棋 AI",
-  "short_name": "五子棋AI",
-  "description": "微信里点开就能玩的五子棋 AI 手机 H5 版。",
+  "name": "五子棋在线",
+  "short_name": "五子棋",
+  "description": "微信里点开就能玩的五子棋在线版，支持 AI 对战、好友约战、随机匹配和积分排行。",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f7ecd2",
-  "theme_color": "#8f5126",
+  "background_color": "#e6f1ec",
+  "theme_color": "#28635d",
   "icons": [
     {
       "src": "./share-cover.svg",

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="960" viewBox="0 0 1200 960" role="img" aria-label="五子棋 AI">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="960" viewBox="0 0 1200 960" role="img" aria-label="五子棋在线">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#f7ecd2" />
@@ -24,8 +24,8 @@
   <circle cx="1020" cy="140" r="150" fill="#ffffff" opacity="0.18" />
   <circle cx="130" cy="110" r="160" fill="#ffffff" opacity="0.16" />
 
-  <text x="92" y="162" font-size="86" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" font-weight="700" fill="#2e2117">五子棋 AI</text>
-  <text x="96" y="228" font-size="34" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" fill="#6a5544">微信里点开就能玩的手机 H5 人机对战版</text>
+  <text x="92" y="162" font-size="86" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" font-weight="700" fill="#2e2117">五子棋在线</text>
+  <text x="96" y="228" font-size="34" font-family="'Microsoft YaHei UI','PingFang SC','Hiragino Sans GB',sans-serif" fill="#6a5544">微信里点开就能玩的手机 H5 在线对战版</text>
 
   <g transform="translate(92 302)">
     <rect width="1016" height="560" rx="34" fill="#fffaf2" opacity="0.72" />
