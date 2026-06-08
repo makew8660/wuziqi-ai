@@ -52,7 +52,7 @@ create table if not exists public.season_scores (
 
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
-  match_type text not null check (match_type in ('friend', 'random')),
+  match_type text not null check (match_type in ('friend', 'random', 'rematch')),
   status text not null check (status in ('invited', 'active', 'finished')),
   created_by uuid not null references public.profiles(id) on delete cascade,
   invited_user uuid references public.profiles(id) on delete set null,
@@ -433,6 +433,98 @@ begin
    where id = p_match_id
      and status = 'invited'
      and invited_user = auth.uid();
+
+  if not found then
+    raise exception 'match_invite_not_found';
+  end if;
+end;
+$$;
+
+create or replace function public.request_rematch(p_match_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_me uuid := auth.uid();
+  v_match public.matches;
+  v_opponent uuid;
+  v_black uuid;
+  v_white uuid;
+  v_new_match uuid;
+begin
+  if v_me is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  select * into v_match
+    from public.matches
+   where id = p_match_id;
+
+  if not found or v_match.status <> 'finished' then
+    raise exception 'match_not_finished';
+  end if;
+
+  if v_me not in (v_match.player_black, v_match.player_white) then
+    raise exception 'not_match_player';
+  end if;
+
+  v_opponent := case when v_me = v_match.player_black then v_match.player_white else v_match.player_black end;
+
+  select id into v_new_match
+    from public.matches
+   where status in ('invited', 'active')
+     and ((player_black = v_me and player_white = v_opponent) or (player_black = v_opponent and player_white = v_me))
+   order by updated_at desc
+   limit 1;
+
+  if v_new_match is not null then
+    return v_new_match;
+  end if;
+
+  if random() < 0.5 then
+    v_black := v_me;
+    v_white := v_opponent;
+  else
+    v_black := v_opponent;
+    v_white := v_me;
+  end if;
+
+  insert into public.matches (
+    match_type, status, created_by, invited_user, player_black, player_white
+  )
+  values ('rematch', 'invited', v_me, v_opponent, v_black, v_white)
+  returning id into v_new_match;
+
+  return v_new_match;
+end;
+$$;
+
+create or replace function public.decline_match(p_match_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_me uuid := auth.uid();
+begin
+  if v_me is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  update public.matches
+     set status = 'finished',
+         winner = null,
+         result = 'draw',
+         finished_reason = 'declined',
+         current_turn = null,
+         pvp_points_awarded = true,
+         ended_at = now()
+   where id = p_match_id
+     and status = 'invited'
+     and (invited_user = v_me or created_by = v_me);
 
   if not found then
     raise exception 'match_invite_not_found';
@@ -1012,6 +1104,8 @@ grant execute on function public.respond_friend(uuid, boolean) to authenticated;
 grant execute on function public.list_friends() to authenticated;
 grant execute on function public.invite_friend_match(uuid) to authenticated;
 grant execute on function public.accept_match(uuid) to authenticated;
+grant execute on function public.request_rematch(uuid) to authenticated;
+grant execute on function public.decline_match(uuid) to authenticated;
 grant execute on function public.join_random_match() to authenticated;
 grant execute on function public.list_my_matches() to authenticated;
 grant execute on function public.make_match_move(uuid, integer, integer) to authenticated;
