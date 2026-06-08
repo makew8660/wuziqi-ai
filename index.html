@@ -74,14 +74,55 @@
     </section>
 
     <nav class="tabbar" aria-label="功能导航">
-      <button class="tab active" data-tab="ai" type="button">AI 对战</button>
+      <button class="tab active" data-tab="home" type="button">首页</button>
+      <button class="tab" data-tab="ai" type="button">AI</button>
       <button class="tab" data-tab="pvp" type="button">真人</button>
       <button class="tab" data-tab="friends" type="button">好友</button>
       <button class="tab" data-tab="rank" type="button">排行</button>
       <button class="tab" data-tab="me" type="button">我的</button>
     </nav>
 
-    <section class="tab-panel active" id="tab-ai">
+    <section class="tab-panel active" id="tab-home">
+      <section class="home-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Master Table</p>
+          <h2>棋局已开，等你入座</h2>
+          <p>AI 练手、真人匹配、好友切磋和实时排行都在这里。</p>
+        </div>
+        <div class="master-cover" aria-hidden="true">
+          <div class="master-moon"></div>
+          <div class="master-body"></div>
+          <div class="cover-board">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-actions" aria-label="首页入口">
+        <button class="home-card" data-home-target="ai" type="button">
+          <strong>AI 对局</strong>
+          <span>先练一盘，胜局可计 AI 分</span>
+        </button>
+        <button class="home-card primary-card" data-home-target="pvp" data-home-queue="true" type="button">
+          <strong>真人匹配</strong>
+          <span>立即寻找在线对手</span>
+        </button>
+        <button class="home-card" data-home-target="friends" type="button">
+          <strong>好友切磋</strong>
+          <span>添加好友，邀请开局</span>
+        </button>
+        <button class="home-card" data-home-target="rank" type="button">
+          <strong>实时排行</strong>
+          <span>真人榜和 AI 榜分开统计</span>
+        </button>
+        <button class="home-card" data-home-target="me" type="button">
+          <strong>我</strong>
+          <span>查看积分、局数和账号</span>
+        </button>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="tab-ai">
       <section class="game-header">
         <div>
           <p class="eyebrow">AI Match</p>
@@ -121,7 +162,12 @@
         <button class="danger small" id="resignBtn" type="button">认输</button>
       </section>
 
-      <section class="board-panel online-board">
+      <section class="panel compact pvp-empty" id="pvpLobbyBlank">
+        <strong>当前没有进行中的对局</strong>
+        <p class="hint">可以点击随机匹配，也可以去好友页邀请好友切磋。</p>
+      </section>
+
+      <section class="board-panel online-board" id="pvpBoardPanel" hidden>
         <canvas id="pvpCanvas" width="900" height="900" aria-label="真人五子棋棋盘"></canvas>
       </section>
 
@@ -203,6 +249,20 @@
         </div>
         <p class="hint">当前赛季 60 天，赛季总分不封顶；真人胜方单局最高 50，AI 胜局最高 30。</p>
       </section>
+    </section>
+
+    <section class="modal-backdrop" id="gameModal" hidden>
+      <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <p class="eyebrow" id="modalKicker">Match Result</p>
+        <h2 id="modalTitle">对局结束</h2>
+        <p id="modalMessage">本局已经结算。</p>
+        <strong class="modal-score" id="modalScore">+0</strong>
+        <p class="modal-note" id="modalNote">棋逢对手，下一盘更有意思。</p>
+        <div class="modal-actions">
+          <button class="secondary" id="modalPrimaryBtn" type="button">确定</button>
+          <button class="primary" id="modalSecondaryBtn" type="button">再战</button>
+        </div>
+      </div>
     </section>
 
     <section class="toast" id="toast" hidden></section>
